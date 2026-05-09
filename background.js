@@ -1,5 +1,15 @@
-const url = window.location.href;
+var rawUrl = window.location.href;
+var i = rawUrl.length-1;
+var updatedUrl = rawUrl
 
+if (i - 1 >= 0 && rawUrl[i - 1] != '/') i--
+
+if (rawUrl[i] >= 'a' && rawUrl[i] <= 'z')
+{
+    updatedUrl = rawUrl.slice(0, i) + rawUrl[i].toUpperCase() + rawUrl.slice(i + 1); 
+}
+
+var url = updatedUrl;
 var id;
 var index;
 
@@ -16,7 +26,7 @@ else{
     index = dataArray[1];
 }
 
-const requestURL = `https://codeforces.com/api/contest.standings?contestId=${id}&from=1&count=1`;
+const requestURL = `https://codeforces.com/api/problemset.problems`;
 
 fetchData();
 
@@ -31,7 +41,7 @@ async function fetchData(){
 
         if(data.status == "OK"){
             for(var i = 0; i < problemsList.length; i++){
-                if(problemsList[i].index == index){
+                if(problemsList[i].contestId == id && problemsList[i].index == index){
                     rating = problemsList[i].rating;
                     tags = problemsList[i].tags;
                     break;
