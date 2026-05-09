@@ -62,7 +62,7 @@ async function fetchData(){
                     <div class="roundbox sidebox" style="">
                         <div class="roundbox-lt">&nbsp;</div>
                         <div class="roundbox-rt">&nbsp;</div>
-                        <div class="caption titled">→ CF GetRating
+                        <div class="caption titled">→ LeekCF Rating
                             <div class="top-links"></div>
                         </div>
                         <div style="padding: 0.5em;">
@@ -111,7 +111,7 @@ async function fetchData(){
                         <div class="roundbox sidebox" style="">
                             <div class="roundbox-lt">&nbsp;</div>
                             <div class="roundbox-rt">&nbsp;</div>
-                            <div class="caption titled">→ CF GetRating
+                            <div class="caption titled">→ LeekCF Rating
                                 <div class="top-links"></div>
                             </div>
                             <div>
@@ -130,7 +130,7 @@ async function fetchData(){
                         <div class="roundbox sidebox" style="">
                             <div class="roundbox-lt">&nbsp;</div>
                             <div class="roundbox-rt">&nbsp;</div>
-                            <div class="caption titled">→ CF GetRating
+                            <div class="caption titled">→ LeekCF Rating
                                 <div class="top-links"></div>
                             </div>
                             <div style="padding: 0.5em;">
