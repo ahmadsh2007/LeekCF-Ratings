@@ -1,4 +1,4 @@
-Download Links [ [ Chrome Web Store ](https://chrome.google.com/webstore/detail/cf-getrating/amnjdhcbnpchmbggnfachokcjiidcpkc) | [ Firefox Addons Store ](https://addons.mozilla.org/en-US/firefox/addon/cf-getrating) ]
+Download Links [ [ Chrome Web Store ](https://chromewebstore.google.com/detail/leekcf-rating/fnkoldggbbjmndapidpegfpkkokboklp) | [ Firefox Addons Store ](https://addons.mozilla.org/en-US/firefox/addon/leekcf-rating) ]
 
 Get rating for Codeforces problems even with problem tags off.
 This Codeforces Get Rating extension helps users to just view the problem rating without seeing the other tags. But if you are stuck with any problem then you can view the tags by clicking on Show All Tags button. The extension also includes a shortcut to go to the Contest Standings directly.
@@ -14,7 +14,8 @@ How to use :
 
 *NOTE* The extension does not work with problems that do not have a problem rating.
 
-![Screenshot1](https://user-images.githubusercontent.com/71769231/180502222-9b425b27-1d35-4341-829e-3079c6f904fe.png)
-![Screenshot2](https://user-images.githubusercontent.com/71769231/180502299-0e3aead3-6031-4c1e-a6ff-56fca088848b.png)
+Download Links [ [ Chrome Web Store ](https://chromewebstore.google.com/detail/leekcf-rating/fnkoldggbbjmndapidpegfpkkokboklp) | [ Firefox Addons Store ](https://addons.mozilla.org/en-US/firefox/addon/leekcf-rating) ]
 
-Download Links [ [ Chrome Web Store ](https://chrome.google.com/webstore/detail/cf-getrating/amnjdhcbnpchmbggnfachokcjiidcpkc) | [ Firefox Addons Store ](https://addons.mozilla.org/en-US/firefox/addon/cf-getrating) ]
+## IMPORTANT:
+This **Repo is a fork** of [ cf-getrating-extension ](https://github.com/importlogic/cf-getrating-extension).  
+I tried to fix an **API problem** by submitting an **RP**, but since the creator seems **inactive**, I fixed it myself.
