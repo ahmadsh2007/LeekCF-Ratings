@@ -18,4 +18,4 @@ Download Links [ [ Chrome Web Store ](https://chromewebstore.google.com/detail/l
 
 ## IMPORTANT:
 This **Repo is a fork** of [ cf-getrating-extension ](https://github.com/importlogic/cf-getrating-extension).  
-I tried to fix an **API problem** by submitting an **RP**, but since the creator seems **inactive**, I fixed it myself.
+I tried to fix an **API problem** by submitting an **PR**, but since the creator seems **inactive**, I fixed it myself.
