@@ -92,12 +92,21 @@ async function fetchData(){
                         </div>
 
                         <div style="text-align:center;">
-                            <button onclick='
-                                                document.querySelectorAll(".hidden").forEach((item) => {
-                                                    item.classList.remove("hidden");
-                                                });
-                                            ' 
-                                     style="margin-bottom:3px; width: 50%;">Show All Tags</button>
+                            <button onclick="
+                                if (this.innerText === 'Show All Tags') {
+                                    document.querySelectorAll('.hidden').forEach((item) => {
+                                        item.dataset.leekTag = 'true'; 
+                                        item.classList.remove('hidden');
+                                    });
+                                    this.innerText = 'Hide All Tags';
+                                } else {
+                                    document.querySelectorAll('[data-leek-tag=true]').forEach((item) => {
+                                        item.classList.add('hidden');
+                                    });
+                                    this.innerText = 'Show All Tags';
+                                }
+                                " 
+                                style="margin-bottom:3px; width: 50%;">Show All Tags</button>
                         </div>
                         <div style="text-align:center;">
                             <a href="https://codeforces.com/contest/${id}/standings" target="_blank"><button style="margin-bottom:15px; margin-top: 3px; width: 50%;">Contest Standings</button></a>
@@ -166,11 +175,20 @@ async function fetchData(){
                             </div>
 
                             <div style="text-align:center;">
-                                <button onclick='
-                                                    document.querySelectorAll(".hidden").forEach((item) => {
-                                                        item.classList.remove("hidden");
-                                                    });
-                                                ' 
+                                <button onclick="
+                                    if (this.innerText === 'Show All Tags') {
+                                        document.querySelectorAll('.hidden').forEach((item) => {
+                                            item.dataset.leekTag = 'true'; 
+                                            item.classList.remove('hidden');
+                                        });
+                                        this.innerText = 'Hide All Tags';
+                                    } else {
+                                        document.querySelectorAll('[data-leek-tag=true]').forEach((item) => {
+                                            item.classList.add('hidden');
+                                        });
+                                        this.innerText = 'Show All Tags';
+                                    }
+                                                " 
                                          style="margin-bottom:3px; width: 50%;">Show All Tags</button>
                             </div>
                             <div style="text-align:center;">
