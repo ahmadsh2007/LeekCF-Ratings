@@ -48,12 +48,33 @@ async function fetchData(){
                 }
             }
         }
-        else{
-            rating = -1;
-        }
     }
     catch(e){
-        rating = -1;
+        // Silence error to allow fallback
+    }
+
+    if (rating === null && id) {
+        try{
+            const response = await fetch(`https://codeforces.com/api/contest.standings?contestId=${id}`);
+            const data = await response.json();
+            const problemsList = data.result.problems;
+
+            if(data.status == "OK"){
+                for(var i = 0; i < problemsList.length; i++){
+                    if(problemsList[i].index == index){
+                        rating = problemsList[i].rating;
+                        tags = problemsList[i].tags;
+                        break;
+                    }
+                }
+            }
+            else{
+                rating = -1;
+            }
+        }
+        catch(e){
+            rating = -1;
+        }
     }
 
     var toInsert;
