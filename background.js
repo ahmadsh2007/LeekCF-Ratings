@@ -32,12 +32,10 @@ function parseCodeforcesUrl(rawUrl) {
     return { id, index };
 }
 
-// --- 2. DATA FETCHING ---
 async function fetchProblemData(id, index) {
     let rating = null;
     let tags = null;
 
-    // Attempt 1: Fetch from general problemset API
     try {
         const response = await fetch(`https://codeforces.com/api/problemset.problems`);
         const data = await response.json();
@@ -53,7 +51,6 @@ async function fetchProblemData(id, index) {
         // Silence error to allow fallback
     }
 
-    // Attempt 2: Fallback to contest standings API if rating is still null
     if (rating === null && id) {
         try {
             const response = await fetch(`https://codeforces.com/api/contest.standings?contestId=${id}`);
@@ -66,19 +63,17 @@ async function fetchProblemData(id, index) {
                     tags = problem.tags;
                 }
             } else {
-                rating = -1; // API Error indicator
+                rating = -1;
             }
         } catch (e) {
-            rating = -1; // API Error indicator
+            rating = -1;
         }
     }
 
     return { rating, tags };
 }
 
-// --- 3. UI GENERATION ---
 function generateHtml(id, rating, tags) {
-    // Scenario A: API Error
     if (rating === -1) {
         return `
             <div class="roundbox sidebox" style="">
@@ -99,7 +94,6 @@ function generateHtml(id, rating, tags) {
         `;
     }
 
-    // Prepare tags HTML
     const tagsHtml = tags ? tags.map(tag => `
         <div class="roundbox hidden" style="margin:2px; padding:0 3px 2px 3px; background-color:#f0f0f0;float:left;">
             <div class="roundbox-lt">&nbsp;</div>
@@ -110,7 +104,6 @@ function generateHtml(id, rating, tags) {
         </div>
     `).join('') : '';
 
-    // Scenario B: Rating not available
     if (rating === null) {
         return `
             <div class="roundbox sidebox" style="">
@@ -131,7 +124,6 @@ function generateHtml(id, rating, tags) {
         `;
     }
 
-    // Scenario C: Rating found successfully
     return `
         <div class="roundbox sidebox" style="">
             <div class="roundbox-lt">&nbsp;</div>
@@ -158,7 +150,6 @@ function generateHtml(id, rating, tags) {
 }
 
 function generateButtonsHtml(id) {
-    // Reusable button snippet to prevent code duplication
     return `
         <div style="text-align:center;">
             <button onclick="
