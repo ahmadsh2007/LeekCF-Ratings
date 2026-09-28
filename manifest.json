@@ -1,7 +1,7 @@
 {
     "name": "LeekCF Rating",
     "description": "Get rating for Codeforces problems even with problem tags off.",
-    "version": "2.1.3",
+    "version": "2.2.0",
     "manifest_version": 3,
     "browser_specific_settings": {
         "gecko": {
@@ -17,6 +17,12 @@
         "48":  "images/icon_48.png",
         "128": "images/icon_128.png"
     },
+    "permissions": [
+        "storage"
+    ],
+    "host_permissions": [
+        "*://codeforces.com/*"
+    ],
     "action": {
         "default_popup": "popup.html",
         "default_icon": "images/icon.png"
@@ -24,7 +30,7 @@
     "content_scripts": [
         {
           "matches": [ "*://codeforces.com/problemset/problem/*/*", "*://codeforces.com/contest/*/problem/*" ],
-          "js": [ "background.js" ],
+          "js": [ "settings.js", "background.js" ],
           "css": [ "background.css" ]
         }
     ]

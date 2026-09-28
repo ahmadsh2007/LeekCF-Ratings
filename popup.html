@@ -1,5 +1,7 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta charset="utf-8">
     <link rel="stylesheet" href="popup.css">
     <link href="https://cdn.jsdelivr.net/npm/remixicon@2.5.0/fonts/remixicon.css" rel="stylesheet">
 </head>
@@ -7,9 +9,46 @@
     <div class="wrapper">
         <div class="heading">
             <h2>LeekCF Rating</h2>
+            <button type="button" id="settings-toggle" class="icon-btn" title="Settings" aria-label="Settings">
+                <i class="ri-settings-3-line"></i>
+            </button>
         </div>
-        <div class="body">
-            <img src="images/MrLeeks.gif" class="leek-img">
+
+        <div id="access-banner" class="banner hidden">
+            <p id="access-text">LeekCF can't run on Codeforces yet. Allow access to codeforces.com to show ratings.</p>
+            <button type="button" id="grant-access" class="btn">Allow access</button>
+        </div>
+
+        <div id="main-view" class="view body">
+            <img src="images/MrLeeks.gif" class="leek-img" alt="MrLeeks">
+        </div>
+
+        <div id="settings-view" class="view settings hidden">
+            <label class="setting-row" for="setting-tag-mode">
+                <span>Tags</span>
+                <select id="setting-tag-mode">
+                    <option value="blur">Blurred, click each</option>
+                    <option value="hide">Hidden until Show All</option>
+                    <option value="show">Always shown</option>
+                </select>
+            </label>
+            <label class="setting-row" for="setting-hide-rating">
+                <span>Hide rating until clicked</span>
+                <input type="checkbox" id="setting-hide-rating">
+            </label>
+            <label class="setting-row" for="setting-color-rating">
+                <span>Color rating by rank</span>
+                <input type="checkbox" id="setting-color-rating">
+            </label>
+            <label class="setting-row" for="setting-show-solved">
+                <span>Show solved count</span>
+                <input type="checkbox" id="setting-show-solved">
+            </label>
+            <div class="setting-row">
+                <span>Problem data</span>
+                <button type="button" id="refresh-cache" class="btn">Refresh</button>
+            </div>
+            <p id="settings-status" class="status" role="status"></p>
         </div>
     </div>
     <div class="footer">
@@ -17,7 +56,8 @@
         <i class="ri-linkedin-box-fill footer-icon"></i>
         <i class="ri-mail-fill footer-icon"></i>
     </div>
+
+    <script src="settings.js"></script>
+    <script src="popup.js"></script>
 </body>
 </html>
-
-<script src="popup.js"></script>

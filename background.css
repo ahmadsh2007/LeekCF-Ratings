@@ -1,3 +1,92 @@
+/* All classes are prefixed with leekcf- because this file is injected into every Codeforces problem page. */
+
 .leekcf-hidden {
     display: none !important;
+}
+
+/*
+ * Prevents a flash of spoiler tags: Codeforces' own tag chips stay invisible until the
+ * script takes over the box (adds .leekcf-native). This CSS loads before the page renders.
+ */
+#sidebar .sidebox:not(.leekcf-native):not(.leekcf-box) .tag-box {
+    visibility: hidden;
+}
+
+.leekcf-content {
+    padding: 0.5em;
+}
+
+/* Inside the native box, Codeforces already provides the padding */
+.leekcf-native .leekcf-content {
+    padding: 0;
+}
+
+.leekcf-chips::after {
+    content: "";
+    display: block;
+    clear: both;
+}
+
+.leekcf-chip {
+    margin: 2px;
+    padding: 0 3px 2px 3px;
+    background-color: #f0f0f0;
+    float: left;
+}
+
+.leekcf-chip .tag-box {
+    font-size: 1.2rem;
+}
+
+.leekcf-concealed {
+    cursor: pointer;
+}
+
+.leekcf-concealed .tag-box,
+.leekcf-concealed.leekcf-inline {
+    filter: blur(3px);
+    user-select: none;
+    transition: filter 0.15s;
+}
+
+.leekcf-concealed:hover .tag-box,
+.leekcf-concealed.leekcf-inline:hover {
+    filter: blur(2px);
+}
+
+.leekcf-message {
+    margin-bottom: 5px;
+    font-size: 0.8em;
+}
+
+.leekcf-error {
+    color: red;
+}
+
+.leekcf-solved {
+    margin: 6px 2px 2px;
+    font-size: 1.1rem;
+    color: #555;
+}
+
+.leekcf-buttons {
+    margin-top: 6px;
+    text-align: center;
+}
+
+.leekcf-buttons button {
+    display: block;
+    width: 50%;
+    margin: 3px auto;
+}
+
+.leekcf-box .leekcf-buttons {
+    margin-bottom: 12px;
+}
+
+.leekcf-badge {
+    margin-left: 6px;
+    font-size: 0.8em;
+    font-weight: normal;
+    color: #888;
 }
