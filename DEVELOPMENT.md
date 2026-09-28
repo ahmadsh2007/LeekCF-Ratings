@@ -16,8 +16,9 @@ This file is broken down into four distinct phases. If you want to add a feature
 * **Phase 3: `generateHtml(id, rating, tags)`**
     * *What it does:* Takes the fetched data and constructs the HTML string. It handles three states: Error (`-1`), Missing Data (`null`), and Success.
     * *Update here if:* You want to add new buttons (like a "Hide All Tags" toggle, or custom styling to the injected sidebar).
-* **Phase 4: `init()`**
-    * *What it does:* Orchestrates the above functions and appends the final HTML to Codeforces' `#sidebar`.
+* **Phase 4: `init()` & `setupTagToggle(ratingBox)`**
+    * *What it does:* Orchestrates the above functions, appends the final HTML (wrapped in `.leekcf-box`) to Codeforces' `#sidebar`, then attaches the Show/Hide Tags click listener with `addEventListener`.
+    * *Note:* Don't use inline `onclick` attributes in the generated HTML. They run in the page's context and can be blocked by Codeforces' Content Security Policy. Give the element a class and attach the listener in `setupTagToggle` (or a similar function) instead.
 
 ### 2. The Popup Interface: `popup.js` & `popup.html`
 * **To add a new link/button:**
@@ -25,7 +26,7 @@ This file is broken down into four distinct phases. If you want to add a feature
     2. Open `popup.js` and simply add a new key-value pair to the `socialLinks` object. The event listener handles the rest automatically.
     
 ### 3. Styling: `background.css` & `popup.css`
-* `background.css`: Currently only holds the `.hidden` class used for toggling tags. If you ever add custom themes or colors to the injected Codeforces DOM, place them here.
+* `background.css`: Currently only holds the `.leekcf-hidden` class used for toggling tags. Always prefix classes with `leekcf-` since this file is injected into every Codeforces problem page and generic names (like `.hidden`) can clash with the site's own styles. If you ever add custom themes or colors to the injected Codeforces DOM, place them here.
 * `popup.css`: Controls your personal branding (MrLeeks GIF, Ubuntu font) in the extension menu.
 
 ---

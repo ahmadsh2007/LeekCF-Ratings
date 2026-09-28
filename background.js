@@ -95,7 +95,7 @@ function generateHtml(id, rating, tags) {
     }
 
     const tagsHtml = tags ? tags.map(tag => `
-        <div class="roundbox hidden" style="margin:2px; padding:0 3px 2px 3px; background-color:#f0f0f0;float:left;">
+        <div class="roundbox leekcf-tag leekcf-hidden" style="margin:2px; padding:0 3px 2px 3px; background-color:#f0f0f0;float:left;">
             <div class="roundbox-lt">&nbsp;</div>
             <div class="roundbox-rt">&nbsp;</div>
             <div class="roundbox-lb">&nbsp;</div>
@@ -152,20 +152,7 @@ function generateHtml(id, rating, tags) {
 function generateButtonsHtml(id) {
     return `
         <div style="text-align:center;">
-            <button onclick="
-                if (this.innerText === 'Show All Tags') {
-                    document.querySelectorAll('.hidden').forEach((item) => {
-                        item.dataset.leekTag = 'true'; 
-                        item.classList.remove('hidden');
-                    });
-                    this.innerText = 'Hide All Tags';
-                } else {
-                    document.querySelectorAll('[data-leek-tag=true]').forEach((item) => {
-                        item.classList.add('hidden');
-                    });
-                    this.innerText = 'Show All Tags';
-                }
-            " style="margin-bottom:3px; width: 50%;">Show All Tags</button>
+            <button type="button" class="leekcf-toggle" style="margin-bottom:3px; width: 50%;">Show All Tags</button>
         </div>
         <div style="text-align:center;">
             <a href="https://codeforces.com/contest/${id}/standings" target="_blank">
@@ -180,10 +167,34 @@ async function init() {
     const { rating, tags } = await fetchProblemData(id, index);
     
     const htmlContent = generateHtml(id, rating, tags);
-    
-    const getRatingBox = document.createElement("div");
-    getRatingBox.innerHTML = htmlContent;
-    document.querySelector("#sidebar").appendChild(getRatingBox);
+
+    const sidebar = document.querySelector("#sidebar");
+    if (!sidebar) return;
+
+    const ratingBox = document.createElement("div");
+    ratingBox.className = "leekcf-box";
+    ratingBox.innerHTML = htmlContent;
+    sidebar.appendChild(ratingBox);
+
+    setupTagToggle(ratingBox);
+}
+
+function setupTagToggle(ratingBox) {
+    const toggleBtn = ratingBox.querySelector(".leekcf-toggle");
+    if (!toggleBtn) return;
+
+    let tagsVisible = false;
+
+    toggleBtn.addEventListener("click", () => {
+        tagsVisible = !tagsVisible;
+
+        // Only touch tags inside our own box, never the rest of the page
+        ratingBox.querySelectorAll(".leekcf-tag").forEach((tag) => {
+            tag.classList.toggle("leekcf-hidden", !tagsVisible);
+        });
+
+        toggleBtn.textContent = tagsVisible ? "Hide All Tags" : "Show All Tags";
+    });
 }
 
 init();
