@@ -12,7 +12,7 @@ Loaded by **both** the content script (listed before `background.js` in `manifes
 * `leekcfLoadSettings()` / `leekcfSaveSettings()`: use `storage.sync`, fall back to `storage.local`, and fall back to defaults if storage is unavailable. They never throw.
 
 ### 2. The Core Logic: `background.js`
-Despite its name, this is a **content script** injected into problem pages. It is split into five phases:
+Despite its name, this is a **content script** injected into problem pages. It is split into these phases:
 
 * **Phase 1: `parseCodeforcesUrl(rawUrl)`**
     * *What it does:* Extracts the `contestId` and problem index from the URL.
@@ -22,13 +22,20 @@ Despite its name, this is a **content script** injected into problem pages. It i
     * *Cache rules:* refreshed every 6 hours (`CACHE_TTL_MS`), or early (after 30 minutes, `MISSING_RETRY_MS`) when the current problem is missing or unrated. If the API is down, a stale cache is used. If storage is unavailable, the API is used directly with no cache.
     * *Fallback:* problems not in the problemset are looked up via `contest.standings?count=1`.
     * *Update here if:* you need more data from the API. Add it to the compact entry array and **bump the version in `LEEKCF_CACHE_KEY`** so old caches are ignored.
+* **Phase 2b: Hints (`fetchHints`, `parseHintsPayload`)**
+    * *What it does:* calls the LeekCF-Hinter API (`HINTS_API`): `GET /v1/problems/{contestId}/{index}/hints`. It runs **only when the user clicks Show Hints**, never on page load, so nothing about a page leaves the browser unless the user asks.
+    * *Result:* `{ status: "ok", items, grounded }`, or `"none"` (the API's 404, which covers unknown, not generated yet and contest not over), `"limited"` (429) or `"error"` (anything else, including a malformed body). It never throws.
+    * *Spoilers:* the response also holds the problem's rating and tags. `parseHintsPayload` keeps only the hint texts and `groundedInTutorial`, so those can't leak past "hide rating" or the tag blur.
+    * *Calls from the browser:* the API sends `Access-Control-Allow-Origin: *` but does not allow custom request headers (so no `X-Client`) and does not expose `Retry-After`, which is why the 429 message says "in a minute" and not a number of seconds.
+    * *Not cached by us:* the API sends cache headers, so the browser's HTTP cache does the job.
 * **Phase 3: Finding where to render**
     * *Native mode:* if the user has tags enabled on Codeforces, `findNativeTagsBox` finds the site's own tags box (by its `.tag-box` content, so it works in any site language). `prepareNativeBox` hides the original chips (kept in the DOM so Codeforces' scripts still work) and inserts a `.leekcf-content` container.
     * *Own mode:* otherwise `createOwnBox` adds a `.leekcf-box` sidebox (the original behaviour).
     * `restoreNativeBox` undoes everything if an error occurs, so tags are never left hidden.
 * **Phase 4: Rendering (`buildContentHtml`, `createWidget`)**
     * `createWidget` owns one container and its reveal state (`ratingRevealed`, `revealedTags`, `allTagsRevealed`). It re-renders on clicks, when API data arrives, and when settings change.
-    * Clicks use **one delegated listener** with `data-action` attributes (`reveal-rating`, `reveal-tag`, `toggle-tags`). **To add a clickable element:** give it a `data-action` and add a `case` in the listener's `switch`.
+    * Clicks use **one delegated listener** with `data-action` attributes (`reveal-rating`, `reveal-tag`, `toggle-tags`, `load-hints`, `open-hints`, `close-hints`, `reveal-hint`). **To add a clickable element:** give it a `data-action` and add a `case` in the listener's `switch`.
+    * The hints panel (`hintsHtml`) sits inside `.leekcf-buttons`, between the tag toggle and Contest Standings. Its state (`hints.status`: idle, loading, ok, none, limited, error) lives in `createWidget` and survives settings changes. Hints reveal strictly one at a time, in order; a locked hint has no text in the DOM. Hint text goes through `renderHintHtml` / `inlineMarkdown`, which escape first and then support only paragraphs, lists, bold, italic, `code` and `$math$`.
     * Concealed tags and ratings render fixed placeholder text. The real value isn't in the DOM until revealed, so it can't leak through the blur or Ctrl+F.
     * Never use inline `onclick` attributes. They run in the page's context and can be blocked by Codeforces' Content Security Policy.
     * API text is always passed through `escapeHtml` before going into HTML.
@@ -42,7 +49,13 @@ Despite its name, this is a **content script** injected into problem pages. It i
     1. Add the icon in `popup.html`.
     2. Add a key-value pair to `socialLinks` in `popup.js` → `setupSocialLinks`.
 
-### 4. Styling: `background.css` & `popup.css`
+### 4. Math in hints: `mathbridge.js`
+Hints contain LaTeX between single dollar signs. Codeforces already loads MathJax, but a content script lives in an isolated world and cannot see the page's `window.MathJax`. So `mathbridge.js` is a second content script declared with `"world": "MAIN"` (Chrome 111+, Firefox 128+) that runs in the page's world.
+* `background.js` marks each formula as `<span class="leekcf-math">$tex$</span>` and fires a plain `leekcf-typeset` event on `document` (no payload, so nothing has to cross between worlds).
+* `mathbridge.js` listens for it, rewrites each new formula using the inline delimiters that the page's MathJax is configured with (Codeforces uses `$$$…$$$`; MathJax 2 and 3 are both handled) and asks MathJax to typeset it. It uses `textContent`, never `innerHTML`.
+* If MathJax or its configuration can't be found, nothing is changed and the user sees the readable `$tex$` text.
+
+### 5. Styling: `background.css` & `popup.css`
 * `background.css`: injected into every problem page, so **always prefix classes with `leekcf-`**. It also contains a rule that keeps Codeforces' native tags invisible until the script takes over the box, which prevents a flash of spoilers on page load.
 * `popup.css`: controls your personal branding (MrLeeks GIF, Ubuntu font) and the settings view.
 

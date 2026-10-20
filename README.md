@@ -11,6 +11,7 @@ Features:
 - Per-tag reveal: click a blurred tag to see just that one.
 - Optional hidden rating for fully blind practice, revealed on click.
 - Works whether Codeforces' own tags are on or off. If they're on, the extension takes over the site's tags box instead of adding a second one.
+- Progressive hints (new in 3.0): click **Show Hints** to get AI-written hints one at a time, gentlest first, ending with the full solution. They come from [LeekCF-Hinter](https://github.com/ahmadsh2007/LeekCF-Hinter), an early MVP that covers only some problems and only after their contest is over. Hints can be wrong.
 - Problem data is cached locally, so pages load fast after the first visit.
 
 How to use : 
@@ -21,6 +22,8 @@ How to use :
 If the popup says it needs access to codeforces.com, click **Allow access** and reload your Codeforces tabs.
 
 *NOTE* If the Codeforces API is down, the extension uses previously cached data when available.
+
+*PRIVACY* Nothing is sent to the hints service unless you click **Show Hints**. That click requests the hints for the problem you are on, which means sending its contest id and problem index (for example `1061` and `A`) to the LeekCF-Hinter API. As with any web request, the host (Cloudflare) also sees your IP address; LeekCF-Hinter itself does not log addresses. No account, settings or browsing history are sent.
 
 *NOTE* The extension does not work with problems that do not have a problem rating.
 

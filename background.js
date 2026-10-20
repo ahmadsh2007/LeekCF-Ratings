@@ -9,6 +9,9 @@
 const CACHE_TTL_MS = 1 * 60 * 60 * 1000;   // Refresh the cached problemset every hour
 const MISSING_RETRY_MS = 10 * 60 * 1000;   // Refresh early if this problem is missing/unrated and cache is 10+ min old
 
+const HINTS_API = "https://leekcf-hinter-api.leekcf.workers.dev";          // LeekCF-Hinter public API: read-only, no key
+const HINTS_ABOUT_URL = "https://github.com/ahmadsh2007/LeekCF-Hinter";    // Shown when a problem has no hints; swap for the blog post once it is published
+
 /* ================================================================
  * Phase 1: URL parsing
  * ================================================================ */
@@ -140,6 +143,52 @@ async function fetchProblemData(id, index) {
 
     // Only an error if we couldn't reach the API at all; otherwise the problem simply has no data
     return { rating: null, tags: [], solvedCount: null, apiError: map === null };
+}
+
+/* ================================================================
+ * Phase 2b: Hints (LeekCF-Hinter API), fetched only when the user asks for them
+ * ================================================================ */
+
+/**
+ * Keeps only the hint texts (gentlest first, the last one is the full solution) and whether an editorial was used.
+ * The response also carries the problem's rating and tags; they are dropped here so they can never leak.
+ * Returns null for anything that is not a usable response.
+ */
+function parseHintsPayload(body) {
+    if (!body || !Array.isArray(body.hints) || body.hints.length === 0) return null;
+
+    const hints = [];
+    for (const hint of body.hints) {
+        if (!hint || !Number.isFinite(hint.level) || typeof hint.content !== "string" || !hint.content.trim()) return null;
+        hints.push(hint);
+    }
+    hints.sort((a, b) => a.level - b.level);
+
+    return { items: hints.map((hint) => hint.content), grounded: body.groundedInTutorial === true };
+}
+
+/** Resolves to { status: "ok", items, grounded } | { status: "none" } | { status: "limited" } | { status: "error" }. Never throws. */
+async function fetchHints(contestId, index) {
+    if (!contestId || !index) return { status: "none" };
+
+    let response;
+    try {
+        response = await fetch(`${HINTS_API}/v1/problems/${encodeURIComponent(contestId)}/${encodeURIComponent(index)}/hints`);
+    } catch (e) {
+        return { status: "error" };
+    }
+
+    // The API answers 404 for every problem without public hints: unknown, not processed yet, or contest not over
+    if (response.status === 404 || response.status === 400) return { status: "none" };
+    if (response.status === 429) return { status: "limited" };
+    if (!response.ok) return { status: "error" };
+
+    try {
+        const parsed = parseHintsPayload(await response.json());
+        return parsed ? { status: "ok", ...parsed } : { status: "error" };
+    } catch (e) {
+        return { status: "error" };
+    }
 }
 
 /* ================================================================
@@ -286,17 +335,129 @@ function solvedHtml(data, settings, state) {
     return `<div class="leekcf-solved">Solved by ${data.solvedCount.toLocaleString("en-US")}</div>`;
 }
 
-function buttonsHtml(contestId, toggleLabel) {
+/**
+ * Inline Markdown for hint text. The text comes from the API, so it is escaped before anything else is applied.
+ * Code spans and $math$ are set aside first, so underscores and asterisks inside them are never read as emphasis.
+ */
+function inlineMarkdown(text) {
+    const stash = [];
+    const keep = (html) => {
+        stash.push(html);
+        return `${stash.length - 1}`;
+    };
+
+    let result = String(text).replace(/[]/g, "");
+    result = result.replace(/`([^`\n]+)`/g, (_, code) => keep(`<code>${escapeHtml(code)}</code>`));
+    // Marked so mathbridge.js can find it; unrendered, the readable $...$ text is what the user sees
+    result = result.replace(/\$([^$\n]+)\$/g, (_, tex) => keep(`<span class="leekcf-math">$${escapeHtml(tex)}$</span>`));
+    result = escapeHtml(result);
+    result = result.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+    result = result.replace(/\*([^*\s][^*]*)\*/g, "<em>$1</em>");
+    return result.replace(/(\d+)/g, (_, i) => stash[Number(i)]);
+}
+
+/** Paragraphs and bullet/numbered lists; everything else in the text is escaped, never passed through as HTML. */
+function renderHintHtml(text) {
+    const blocks = [];
+    let paragraph = [];
+    let list = null; // { tag: "ul" | "ol", items: [] }
+
+    const flushParagraph = () => {
+        if (paragraph.length) blocks.push(`<p>${inlineMarkdown(paragraph.join(" "))}</p>`);
+        paragraph = [];
+    };
+    const flushList = () => {
+        if (list) blocks.push(`<${list.tag}>${list.items.map((item) => `<li>${inlineMarkdown(item)}</li>`).join("")}</${list.tag}>`);
+        list = null;
+    };
+
+    for (const rawLine of String(text).split(/\r?\n/)) {
+        const line = rawLine.trim();
+        const bullet = line.match(/^[-*+]\s+(.+)$/);
+        const numbered = line.match(/^\d+[.)]\s+(.+)$/);
+        const item = bullet || numbered;
+
+        if (item) {
+            flushParagraph();
+            const tag = bullet ? "ul" : "ol";
+            if (list && list.tag !== tag) flushList();
+            if (!list) list = { tag, items: [] };
+            list.items.push(item[1]);
+        } else if (line === "") {
+            flushParagraph();
+            flushList();
+        } else {
+            flushList();
+            paragraph.push(line);
+        }
+    }
+    flushParagraph();
+    flushList();
+    return blocks.join("");
+}
+
+function hintsRetryHtml(message) {
+    return `
+        <div class="leekcf-message leekcf-error">${message}</div>
+        <button type="button" data-action="load-hints">Try Again</button>
+    `;
+}
+
+/** Revealed hints only: a hint that is still locked has no text in the DOM, same as concealed tags. */
+function hintsPanelHtml(hints) {
+    const last = hints.items.length - 1;
+    const parts = [];
+
+    for (let i = 0; i < hints.revealed; i++) {
+        const isSolution = i === last;
+        parts.push(`
+            <div class="leekcf-hint${isSolution ? " leekcf-hint-solution" : ""}">
+                <div class="leekcf-hint-title">${isSolution ? "Full solution" : `Hint ${i + 1}`}</div>
+                <div class="leekcf-hint-body">${renderHintHtml(hints.items[i])}</div>
+            </div>
+        `);
+    }
+
+    if (hints.revealed < hints.items.length) {
+        const label = hints.revealed === last ? "Show Full Solution" : `Show Hint ${hints.revealed + 1}`;
+        parts.push(`<button type="button" data-action="reveal-hint">${label}</button>`);
+    }
+
+    const editorialNote = hints.grounded ? "" : " Written without the editorial.";
+    parts.push(`<div class="leekcf-hint-footer">AI-generated, can be wrong.${editorialNote}</div>`);
+    parts.push(`<button type="button" data-action="close-hints">Hide Hints</button>`);
+    return `<div class="leekcf-hints">${parts.join("")}</div>`;
+}
+
+function hintsHtml(hints) {
+    switch (hints.status) {
+        case "loading":
+            return `<button type="button" disabled>Loading hints…</button>`;
+        case "none":
+            return `<div class="leekcf-message">No hints for this problem yet. Hinter is an early MVP and covers only some problems. <a href="${HINTS_ABOUT_URL}" target="_blank" rel="noopener">About Hinter</a></div>`;
+        case "limited":
+            return hintsRetryHtml("Too many requests. Try again in a minute.");
+        case "error":
+            return hintsRetryHtml("Hints are unavailable right now.");
+        case "ok":
+            return hints.open ? hintsPanelHtml(hints) : `<button type="button" data-action="open-hints">Show Hints</button>`;
+        default:
+            return `<button type="button" data-action="load-hints">Show Hints</button>`;
+    }
+}
+
+function buttonsHtml(contestId, toggleLabel, hints) {
     const toggle = toggleLabel
         ? `<button type="button" class="leekcf-toggle" data-action="toggle-tags">${toggleLabel}</button>`
         : "";
+    const hintsSlot = hints ? hintsHtml(hints) : "";
     const standings = contestId
         ? `<a href="https://codeforces.com/contest/${encodeURIComponent(contestId)}/standings" target="_blank" rel="noopener"><button type="button">Contest Standings</button></a>`
         : "";
-    return `<div class="leekcf-buttons">${toggle}${standings}</div>`;
+    return `<div class="leekcf-buttons">${toggle}${hintsSlot}${standings}</div>`;
 }
 
-function buildContentHtml(data, settings, state, contestId) {
+function buildContentHtml(data, settings, state, contestId, hints) {
     if (data.loading && !data.native) {
         return `<div class="leekcf-message">Loading problem data…</div>`;
     }
@@ -304,7 +465,7 @@ function buildContentHtml(data, settings, state, contestId) {
     if (data.apiError) {
         return `
             <div class="leekcf-message leekcf-error">Codeforces API Error.</div>
-            ${buttonsHtml(contestId, null)}
+            ${buttonsHtml(contestId, null, hints)}
         `;
     }
 
@@ -341,15 +502,19 @@ function buildContentHtml(data, settings, state, contestId) {
         ${message}
         <div class="leekcf-chips">${chips.join("")}</div>
         ${solvedHtml(data, settings, state)}
-        ${buttonsHtml(contestId, toggleLabel)}
+        ${buttonsHtml(contestId, toggleLabel, hints)}
     `;
 }
 
 /** Owns one container: keeps the reveal state and re-renders on clicks, data updates, and settings changes. */
-function createWidget(container, contestId, initialSettings, initialData) {
+function createWidget(container, contestId, problemIndex, initialSettings, initialData) {
     let settings = initialSettings;
     let data = initialData;
     let state;
+
+    // Hints are fetched only when the user asks, and kept for this page view. status: idle | loading | ok | none | limited | error
+    const hints = { status: "idle", open: true, items: [], grounded: false, revealed: 0 };
+    const hintsAvailable = Boolean(contestId && problemIndex);
 
     function resetState() {
         state = {
@@ -359,8 +524,28 @@ function createWidget(container, contestId, initialSettings, initialData) {
         };
     }
 
+    /** Formulas are drawn by the page's own MathJax, which only mathbridge.js (page world) can reach. */
+    function requestTypeset() {
+        try {
+            document.dispatchEvent(new CustomEvent("leekcf-typeset"));
+        } catch (e) {
+            // No typesetting: the formulas stay readable as $...$ text
+        }
+    }
+
     function render() {
-        container.innerHTML = buildContentHtml(data, settings, state, contestId);
+        container.innerHTML = buildContentHtml(data, settings, state, contestId, hintsAvailable ? hints : null);
+        if (hints.status === "ok" && hints.open && hints.revealed > 0) requestTypeset();
+    }
+
+    async function loadHints() {
+        if (hints.status === "loading") return;
+        hints.status = "loading";
+        render();
+
+        const result = await fetchHints(contestId, problemIndex);
+        Object.assign(hints, { open: true, items: [], grounded: false, revealed: 0 }, result);
+        render();
     }
 
     // One delegated listener, attached once, survives every re-render
@@ -382,6 +567,20 @@ function createWidget(container, contestId, initialSettings, initialData) {
                 } else {
                     state.allTagsRevealed = true;
                 }
+                break;
+            case "load-hints":
+                loadHints(); // renders the loading state now and the result when it arrives
+                return;
+            case "open-hints":
+                hints.open = true;
+                break;
+            case "close-hints":
+                hints.open = false;
+                hints.revealed = 0;
+                break;
+            case "reveal-hint":
+                // One at a time, in order, so the full solution can't be hit by accident
+                if (hints.revealed < hints.items.length) hints.revealed++;
                 break;
             default:
                 return;
@@ -442,7 +641,7 @@ async function init() {
             data = { loading: true };
         }
 
-        const widget = createWidget(container, id, settings, data);
+        const widget = createWidget(container, id, index, settings, data);
         watchSettings(widget);
 
         const api = await fetchProblemData(id, index);

@@ -1,13 +1,13 @@
 {
     "name": "LeekCF Rating",
     "description": "Get rating for Codeforces problems even with problem tags off.",
-    "version": "2.2.1",
+    "version": "3.0.0",
     "manifest_version": 3,
     "browser_specific_settings": {
         "gecko": {
             "id": "cf-rater@ahmadshatnawi.com",
             "data_collection_permissions": {
-                "required": ["none"]
+                "required": ["browsingActivity"]
             }
         }
     },
@@ -32,6 +32,11 @@
           "matches": [ "*://codeforces.com/problemset/problem/*/*", "*://codeforces.com/contest/*/problem/*" ],
           "js": [ "settings.js", "background.js" ],
           "css": [ "background.css" ]
+        },
+        {
+          "matches": [ "*://codeforces.com/problemset/problem/*/*", "*://codeforces.com/contest/*/problem/*" ],
+          "js": [ "mathbridge.js" ],
+          "world": "MAIN"
         }
     ]
 }

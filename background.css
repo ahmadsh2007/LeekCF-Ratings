@@ -80,6 +80,51 @@
     margin: 3px auto;
 }
 
+/* Hints: the panel sits inside .leekcf-buttons, between the tag toggle and Contest Standings */
+.leekcf-hints {
+    margin: 6px 2px;
+    text-align: left;
+    font-size: 1.15rem;
+    line-height: 1.5;
+}
+
+.leekcf-hint {
+    margin: 6px 0;
+    padding: 4px 6px;
+    background-color: #f6f6f6;
+    border-left: 3px solid #b9b9b9;
+}
+
+.leekcf-hint-solution {
+    border-left-color: #ff8c00;
+}
+
+.leekcf-hint-title {
+    font-weight: bold;
+}
+
+.leekcf-hint-body {
+    overflow-x: auto;
+    overflow-wrap: anywhere;
+}
+
+.leekcf-hint-body p,
+.leekcf-hint-body ul,
+.leekcf-hint-body ol {
+    margin: 4px 0;
+}
+
+.leekcf-hint-body ul,
+.leekcf-hint-body ol {
+    padding-left: 1.4em;
+}
+
+.leekcf-hint-footer {
+    margin: 4px 2px;
+    font-size: 0.8em;
+    color: #888;
+}
+
 .leekcf-box .leekcf-buttons {
     margin-bottom: 12px;
 }
