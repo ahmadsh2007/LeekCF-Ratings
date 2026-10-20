@@ -267,8 +267,8 @@ function isTagVisible(state, i) {
     return state.allTagsRevealed || state.revealedTags.has(i);
 }
 
-function areAllTagsVisible(state, tags) {
-    return tags.every((_, i) => isTagVisible(state, i));
+function isAnyTagVisible(state, tags) {
+    return tags.some((_, i) => isTagVisible(state, i));
 }
 
 function solvedHtml(data, settings, state) {
@@ -334,7 +334,7 @@ function buildContentHtml(data, settings, state, contestId) {
         : "";
 
     const toggleLabel = tags.length
-        ? (areAllTagsVisible(state, tags) ? "Hide All Tags" : "Show All Tags")
+        ? (isAnyTagVisible(state, tags) ? "Hide All Tags" : "Show All Tags")
         : null;
 
     return `
@@ -376,7 +376,7 @@ function createWidget(container, contestId, initialSettings, initialData) {
                 state.revealedTags.add(Number(target.dataset.index));
                 break;
             case "toggle-tags":
-                if (areAllTagsVisible(state, data.tags || [])) {
+                if (isAnyTagVisible(state, data.tags || [])) {
                     state.allTagsRevealed = false;
                     state.revealedTags.clear();
                 } else {
