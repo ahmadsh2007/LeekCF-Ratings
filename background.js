@@ -11,6 +11,7 @@ const MISSING_RETRY_MS = 10 * 60 * 1000;   // Refresh early if this problem is m
 
 const HINTS_API = "https://leekcf-hinter-api.leekcf.workers.dev";          // LeekCF-Hinter public API: read-only, no key
 const HINTS_ABOUT_URL = "https://github.com/ahmadsh2007/LeekCF-Hinter";    // Shown when a problem has no hints; swap for the blog post once it is published
+const HINTS_TIMEOUT_MS = 10 * 1000;                                        // Give up on the hints API after this long (a cold lookup takes about 0.4 s, the slowest seen 4.4 s)
 
 /* ================================================================
  * Phase 1: URL parsing
@@ -187,27 +188,39 @@ function parseRetryAfter(value) {
     return seconds >= 1 && seconds <= 120 ? seconds : null;
 }
 
-/** Resolves to { status: "ok", items, grounded } | { status: "none" } | { status: "limited", retryAfter } | { status: "error" }. Never throws. */
+/**
+ * Resolves to { status: "ok", items, grounded } | { status: "none" } | { status: "limited", retryAfter } | { status: "error" }. Never throws.
+ * A request that gets no answer is abandoned after HINTS_TIMEOUT_MS: without that, a stalled server leaves the panel
+ * on "Loading hints…" for good (the button is disabled while loading, so there would be nothing left to click).
+ */
 async function fetchHints(contestId, index) {
     if (!contestId || !index) return { status: "none" };
 
-    let response;
-    try {
-        response = await fetch(`${HINTS_API}/v1/problems/${encodeURIComponent(contestId)}/${encodeURIComponent(index)}/hints?client=${encodeURIComponent(hintsClientLabel())}`);
-    } catch (e) {
-        return { status: "error" };
-    }
-
-    // The API answers 404 for every problem without public hints: unknown, not processed yet, or contest not over
-    if (response.status === 404 || response.status === 400) return { status: "none" };
-    if (response.status === 429) return { status: "limited", retryAfter: parseRetryAfter(response.headers.get("Retry-After")) };
-    if (!response.ok) return { status: "error" };
+    // One timer covers the whole exchange, body included, because a server can also stall after sending headers
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), HINTS_TIMEOUT_MS);
 
     try {
-        const parsed = parseHintsPayload(await response.json());
-        return parsed ? { status: "ok", ...parsed } : { status: "error" };
-    } catch (e) {
-        return { status: "error" };
+        let response;
+        try {
+            response = await fetch(`${HINTS_API}/v1/problems/${encodeURIComponent(contestId)}/${encodeURIComponent(index)}/hints?client=${encodeURIComponent(hintsClientLabel())}`, { signal: controller.signal });
+        } catch (e) {
+            return { status: "error" };
+        }
+
+        // The API answers 404 for every problem without public hints: unknown, not processed yet, or contest not over
+        if (response.status === 404 || response.status === 400) return { status: "none" };
+        if (response.status === 429) return { status: "limited", retryAfter: parseRetryAfter(response.headers.get("Retry-After")) };
+        if (!response.ok) return { status: "error" };
+
+        try {
+            const parsed = parseHintsPayload(await response.json());
+            return parsed ? { status: "ok", ...parsed } : { status: "error" };
+        } catch (e) {
+            return { status: "error" };
+        }
+    } finally {
+        clearTimeout(timer);
     }
 }
 

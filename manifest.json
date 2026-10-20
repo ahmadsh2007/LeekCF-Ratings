@@ -1,7 +1,7 @@
 {
     "name": "LeekCF Rating",
     "description": "Get rating for Codeforces problems even with problem tags off.",
-    "version": "3.0.1",
+    "version": "3.0.2",
     "manifest_version": 3,
     "browser_specific_settings": {
         "gecko": {
