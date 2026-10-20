@@ -167,20 +167,40 @@ function parseHintsPayload(body) {
     return { items: hints.map((hint) => hint.content), grounded: body.groundedInTutorial === true };
 }
 
-/** Resolves to { status: "ok", items, grounded } | { status: "none" } | { status: "limited" } | { status: "error" }. Never throws. */
+/**
+ * "leekcf-ratings/3.0.1": names this app to the API so it can count requests per app version. A query parameter
+ * (not the X-Client header) because a plain GET needs no CORS preflight. Self-declared, statistics only.
+ */
+function hintsClientLabel() {
+    try {
+        return `leekcf-ratings/${LEEKCF_EXT.runtime.getManifest().version}`;
+    } catch (e) {
+        return "leekcf-ratings";
+    }
+}
+
+/** Seconds from a Retry-After header: only a plain whole number up to two minutes is trusted, anything else is null. */
+function parseRetryAfter(value) {
+    const text = String(value ?? "").trim();
+    if (!/^\d+$/.test(text)) return null;
+    const seconds = Number(text);
+    return seconds >= 1 && seconds <= 120 ? seconds : null;
+}
+
+/** Resolves to { status: "ok", items, grounded } | { status: "none" } | { status: "limited", retryAfter } | { status: "error" }. Never throws. */
 async function fetchHints(contestId, index) {
     if (!contestId || !index) return { status: "none" };
 
     let response;
     try {
-        response = await fetch(`${HINTS_API}/v1/problems/${encodeURIComponent(contestId)}/${encodeURIComponent(index)}/hints`);
+        response = await fetch(`${HINTS_API}/v1/problems/${encodeURIComponent(contestId)}/${encodeURIComponent(index)}/hints?client=${encodeURIComponent(hintsClientLabel())}`);
     } catch (e) {
         return { status: "error" };
     }
 
     // The API answers 404 for every problem without public hints: unknown, not processed yet, or contest not over
     if (response.status === 404 || response.status === 400) return { status: "none" };
-    if (response.status === 429) return { status: "limited" };
+    if (response.status === 429) return { status: "limited", retryAfter: parseRetryAfter(response.headers.get("Retry-After")) };
     if (!response.ok) return { status: "error" };
 
     try {
@@ -435,8 +455,10 @@ function hintsHtml(hints) {
             return `<button type="button" disabled>Loading hints…</button>`;
         case "none":
             return `<div class="leekcf-message">No hints for this problem yet. Hinter is an early MVP and covers only some problems. <a href="${HINTS_ABOUT_URL}" target="_blank" rel="noopener">About Hinter</a></div>`;
-        case "limited":
-            return hintsRetryHtml("Too many requests. Try again in a minute.");
+        case "limited": {
+            const wait = hints.retryAfter ? `in ${hints.retryAfter} second${hints.retryAfter === 1 ? "" : "s"}` : "in a minute";
+            return hintsRetryHtml(`Too many requests. Try again ${wait}.`);
+        }
         case "error":
             return hintsRetryHtml("Hints are unavailable right now.");
         case "ok":
@@ -513,7 +535,7 @@ function createWidget(container, contestId, problemIndex, initialSettings, initi
     let state;
 
     // Hints are fetched only when the user asks, and kept for this page view. status: idle | loading | ok | none | limited | error
-    const hints = { status: "idle", open: true, items: [], grounded: false, revealed: 0 };
+    const hints = { status: "idle", open: true, items: [], grounded: false, revealed: 0, retryAfter: null };
     const hintsAvailable = Boolean(contestId && problemIndex);
 
     function resetState() {
@@ -544,7 +566,7 @@ function createWidget(container, contestId, problemIndex, initialSettings, initi
         render();
 
         const result = await fetchHints(contestId, problemIndex);
-        Object.assign(hints, { open: true, items: [], grounded: false, revealed: 0 }, result);
+        Object.assign(hints, { open: true, items: [], grounded: false, revealed: 0, retryAfter: null }, result);
         render();
     }
 

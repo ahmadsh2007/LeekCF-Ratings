@@ -23,7 +23,7 @@ If the popup says it needs access to codeforces.com, click **Allow access** and 
 
 *NOTE* If the Codeforces API is down, the extension uses previously cached data when available.
 
-*PRIVACY* Nothing is sent to the hints service unless you click **Show Hints**. That click requests the hints for the problem you are on, which means sending its contest id and problem index (for example `1061` and `A`) to the LeekCF-Hinter API. As with any web request, the host (Cloudflare) also sees your IP address; LeekCF-Hinter itself does not log addresses. No account, settings or browsing history are sent.
+*PRIVACY* Nothing is sent to the hints service unless you click **Show Hints**. That click requests the hints for the problem you are on, which means sending its contest id and problem index (for example `1061` and `A`) to the LeekCF-Hinter API, together with the name and version of this extension (`leekcf-ratings/<version>`) so the service can count usage per app. As with any web request, the host (Cloudflare) also sees your IP address; LeekCF-Hinter itself does not log addresses. No account, settings or browsing history are sent.
 
 *NOTE* The extension does not work with problems that do not have a problem rating.
 
